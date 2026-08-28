@@ -1,0 +1,75 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SessionType {
+  FOCUS
+  SHORT_BREAK
+  LONG_BREAK
+}
+
+enum SessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  INTERRUPTED
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  passwordHash  String
+  createdAt     DateTime      @default(now())
+
+  tasks         Task[]
+  sessions      FocusSession[]
+  settings      UserSettings?
+}
+
+model UserSettings {
+  userId                   String   @id
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  focusDurationMinutes     Int      @default(25)
+  shortBreakMinutes        Int      @default(5)
+  longBreakMinutes         Int      @default(15)
+  sessionsBeforeLongBreak  Int      @default(4)
+}
+
+model Task {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isArchived  Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+
+  sessions    FocusSession[]
+
+  @@index([userId])
+}
+
+model FocusSession {
+  id                     String        @id @default(cuid())
+  userId                 String
+  user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId                 String?
+  task                   Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  sessionType            SessionType
+  status                 SessionStatus @default(IN_PROGRESS)
+  plannedDurationSeconds Int
+  actualDurationSeconds  Int?
+
+  startedAt              DateTime      @default(now())
+  endedAt                DateTime?
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([userId, startedAt])
+}

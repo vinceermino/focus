@@ -1,0 +1,10 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "module": "ESNext", // or "ES2022", "ES2020", etc.
+    "moduleResolution": "bundler"
+  },
+  "include": ["src"]
+}
