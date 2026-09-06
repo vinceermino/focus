@@ -1,132 +1,150 @@
-"use client";
+"use client"
 
-import { useActionState } from "react";
-import Link from "next/link";
-import { signup } from "@/lib/actions";
-import { Eye, EyeOff, Timer } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link"
+import { type FormEvent, useState } from "react"
+import { createClient } from "@supabase/supabase-js"
+
+// --- Supabase client setup with environment check ---
+// It's better to create the client once, outside the component,
+// but we must ensure the required variables exist.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
+  )
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function SignupPage() {
-  const [state, formAction, isPending] = useActionState(signup, undefined);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsPending(true)
+    setError(null)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get("email")
+    const password = formData.get("password")
+    const confirmPassword = formData.get("confirmPassword")
+
+    // Ensure all fields are strings (FormData can return File | string)
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      typeof confirmPassword !== "string"
+    ) {
+      setError("Invalid form data")
+      setIsPending(false)
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      setIsPending(false)
+      return
+    }
+
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      })
+
+      if (signUpError) {
+        setError(signUpError.message)
+      } else {
+        setSuccess(true)
+      }
+    } catch (err) {
+      // Handle any unexpected errors (network, etc.)
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      )
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div>
+        <h2>Check your email!</h2>
+        <p>We've sent a confirmation link to finish setting up your account.</p>
+        <p>
+          <Link href="/login">Go to sign in</Link>
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <div className="animate-fade-in">
-      {/* Logo */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6c5ce7] to-[#a29bfe] shadow-lg shadow-[#6c5ce7]/25">
-          <Timer className="h-7 w-7 text-white" />
-        </div>
-        <h1 className="text-2xl font-semibold text-white">Create account</h1>
-        <p className="mt-1 text-sm text-[#8b8ca7]">
-          Start tracking your focus sessions today
+    <div>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <form onSubmit={handleSubmit}>
+        <p>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+          />
         </p>
-      </div>
 
-      {/* Card */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#1a1b2e]/80 p-8 shadow-2xl backdrop-blur-xl">
-        {state?.error && (
-          <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            {state.error}
-          </div>
-        )}
-
-        <form action={formAction} className="space-y-5">
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-1.5 block text-sm font-medium text-[#c8c9e0]"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-[#55567a] outline-none transition-all duration-200 focus:border-[#6c5ce7]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#6c5ce7]/20"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-[#c8c9e0]"
-            >
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 pr-11 text-sm text-white placeholder-[#55567a] outline-none transition-all duration-200 focus:border-[#6c5ce7]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#6c5ce7]/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#55567a] transition-colors hover:text-[#c8c9e0]"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-1.5 block text-sm font-medium text-[#c8c9e0]"
-            >
-              Confirm password
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type={showPassword ? "text" : "password"}
-              required
-              minLength={8}
-              autoComplete="new-password"
-              placeholder="Re-enter your password"
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-[#55567a] outline-none transition-all duration-200 focus:border-[#6c5ce7]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#6c5ce7]/20"
-            />
-          </div>
-
+        <p>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+          />
           <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-xl bg-gradient-to-r from-[#6c5ce7] to-[#a29bfe] py-3 text-sm font-semibold text-white shadow-lg shadow-[#6c5ce7]/25 transition-all duration-200 hover:shadow-xl hover:shadow-[#6c5ce7]/30 disabled:opacity-60"
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {isPending ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Creating account...
-              </span>
-            ) : (
-              "Create account"
-            )}
+            {showPassword ? "Hide" : "Show"}
           </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-[#8b8ca7]">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-[#a29bfe] transition-colors hover:text-[#6c5ce7]"
-          >
-            Sign in
-          </Link>
         </p>
-      </div>
+
+        <p>
+          <label htmlFor="confirmPassword">Confirm password</label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+          />
+        </p>
+
+        <button type="submit" disabled={isPending}>
+          {isPending ? "Creating account..." : "Create account"}
+        </button>
+      </form>
+
+      <p>
+        <Link href="/login">Sign in</Link>
+      </p>
     </div>
-  );
+  )
 }

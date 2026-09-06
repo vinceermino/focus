@@ -44,9 +44,6 @@ export async function signup(
     data: {
       email,
       passwordHash,
-      settings: {
-        create: {}, // defaults: 25/5/15/4
-      },
     },
   });
 
