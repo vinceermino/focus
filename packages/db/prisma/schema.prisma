@@ -8,12 +8,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum SessionStatus {
-  IN_PROGRESS
-  COMPLETED
-  INTERRUPTED
-}
-
 model Profile {
   id            String         @id @default(cuid())
   userId        String         @unique @db.Uuid
@@ -25,12 +19,12 @@ model Profile {
 }
 
 model FocusSession {
-  id        String        @id @default(cuid())
-  profileId String
-  status    SessionStatus @default(IN_PROGRESS)
-  startedAt DateTime      @default(now())
-  endedAt   DateTime?
-  profile   Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  profileId       String
+  durationSeconds Int?
+  startedAt       DateTime      @default(now())
+  endedAt         DateTime?
+  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([profileId, startedAt])

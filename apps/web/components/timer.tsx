@@ -22,6 +22,7 @@ function formatTime(seconds: number): string {
 export function Timer() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const activeSessionId = useRef<string | null>(null)
   const elapsedSecondsRef = useRef(0)
 
@@ -47,21 +48,18 @@ export function Timer() {
     return () => window.clearInterval(interval)
   }, [isRunning])
 
-  const saveElapsedTime = useCallback(
-    (status?: "COMPLETED" | "INTERRUPTED") => {
-      if (!activeSessionId.current) return
+  const endSession = useCallback((status: "COMPLETED" | "INTERRUPTED") => {
+    if (!activeSessionId.current) return
 
-      fetch(`/api/sessions/${activeSessionId.current}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          actualDurationSeconds: elapsedSecondsRef.current,
-          ...(status ? { status } : {}),
-        }),
-      }).catch(() => {})
-    },
-    []
-  )
+    fetch(`/api/sessions/${activeSessionId.current}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status,
+        durationSeconds: elapsedSecondsRef.current,
+      }),
+    }).catch(() => {})
+  }, [])
 
   const startTimer = useCallback(async () => {
     setIsRunning(true)
@@ -81,16 +79,25 @@ export function Timer() {
 
   const pauseTimer = useCallback(() => {
     setIsRunning(false)
-    saveElapsedTime()
-  }, [saveElapsedTime])
+  }, [])
 
-  const resetTimer = useCallback(() => {
+  const handleResetClick = useCallback(() => {
+    if (elapsedSeconds === 0) return
     setIsRunning(false)
-    saveElapsedTime("INTERRUPTED")
+    setShowConfirm(true)
+  }, [elapsedSeconds])
+
+  const confirmReset = useCallback(() => {
+    endSession("COMPLETED")
     activeSessionId.current = null
     elapsedSecondsRef.current = 0
     setElapsedSeconds(0)
-  }, [saveElapsedTime])
+    setShowConfirm(false)
+  }, [endSession])
+
+  const cancelReset = useCallback(() => {
+    setShowConfirm(false)
+  }, [])
 
   return (
     <section className="w-full max-w-sm text-center">
@@ -101,28 +108,50 @@ export function Timer() {
         {formatTime(elapsedSeconds)}
       </time>
 
-      <div className="mt-10 flex items-center justify-center gap-6">
-        <button
-          type="button"
-          onClick={resetTimer}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-600 transition-colors hover:text-white"
-          title="Reset timer"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={isRunning ? pauseTimer : startTimer}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-700 text-white transition-colors hover:bg-white hover:text-black"
-          title={isRunning ? "Pause timer" : "Start timer"}
-        >
-          {isRunning ? (
-            <Pause className="h-5 w-5" />
-          ) : (
-            <Play className="ml-0.5 h-5 w-5" />
-          )}
-        </button>
-      </div>
+      {showConfirm ? (
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <p className="text-sm text-neutral-400">End this session?</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={cancelReset}
+              className="rounded-full border border-neutral-700 px-5 py-2 text-xs font-medium text-neutral-400 transition-colors hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmReset}
+              className="rounded-full bg-white px-5 py-2 text-xs font-medium text-black transition-opacity hover:opacity-80"
+            >
+              End session
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-10 flex items-center justify-center gap-6">
+          <button
+            type="button"
+            onClick={handleResetClick}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-600 transition-colors hover:text-white"
+            title="Reset timer"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={isRunning ? pauseTimer : startTimer}
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-neutral-700 text-white transition-colors hover:bg-white hover:text-black"
+            title={isRunning ? "Pause timer" : "Start timer"}
+          >
+            {isRunning ? (
+              <Pause className="h-5 w-5" />
+            ) : (
+              <Play className="ml-0.5 h-5 w-5" />
+            )}
+          </button>
+        </div>
+      )}
     </section>
   )
 }
