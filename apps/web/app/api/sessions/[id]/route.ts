@@ -1,12 +1,7 @@
 import { cookies } from "next/headers"
 import { NextRequest } from "next/server"
-import { prisma, SessionStatus } from "@workspace/db"
+import { prisma } from "@workspace/db"
 import { createClient } from "@/utils/supabase/server"
-
-const terminalStatuses = new Set<SessionStatus>([
-  SessionStatus.COMPLETED,
-  SessionStatus.INTERRUPTED,
-])
 
 export async function PATCH(
   request: NextRequest,
@@ -23,13 +18,11 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const status = body.status
   const durationSeconds = body.durationSeconds
 
   if (
-    (status !== undefined && !Object.values(SessionStatus).includes(status)) ||
-    (durationSeconds !== undefined &&
-      (!Number.isInteger(durationSeconds) || durationSeconds < 0))
+    durationSeconds !== undefined &&
+    (!Number.isInteger(durationSeconds) || durationSeconds < 0)
   ) {
     return Response.json(
       { error: "Invalid focus session update" },
@@ -53,15 +46,11 @@ export async function PATCH(
     return Response.json({ error: "Session not found" }, { status: 404 })
   }
 
-  const nextStatus = status as SessionStatus | undefined
   const updated = await prisma.focusSession.update({
     where: { id },
     data: {
-      status: nextStatus,
       durationSeconds,
-      ...(nextStatus && terminalStatuses.has(nextStatus)
-        ? { endedAt: new Date() }
-        : {}),
+      endedAt: new Date(),
     },
   })
 

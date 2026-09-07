@@ -48,15 +48,17 @@ export function Timer() {
     return () => window.clearInterval(interval)
   }, [isRunning])
 
-  const endSession = useCallback((status: "COMPLETED" | "INTERRUPTED") => {
+  const endSession = useCallback(async () => {
     if (!activeSessionId.current) return
 
-    fetch(`/api/sessions/${activeSessionId.current}`, {
+    const sessionId = activeSessionId.current
+    const duration = elapsedSecondsRef.current
+
+    await fetch(`/api/sessions/${sessionId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        status,
-        durationSeconds: elapsedSecondsRef.current,
+        durationSeconds: duration,
       }),
     }).catch(() => {})
   }, [])
@@ -87,8 +89,8 @@ export function Timer() {
     setShowConfirm(true)
   }, [elapsedSeconds])
 
-  const confirmReset = useCallback(() => {
-    endSession("COMPLETED")
+  const confirmReset = useCallback(async () => {
+    await endSession()
     activeSessionId.current = null
     elapsedSecondsRef.current = 0
     setElapsedSeconds(0)
