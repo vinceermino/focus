@@ -1,18 +1,25 @@
 "use client"
 
-import { logout } from "@/lib/actions"
 import { LogOut } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
+import { useRouter } from "next/navigation"
 
 export function LogoutButton() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/login")
+    router.refresh()
+  }
   return (
-    <form action={logout}>
-      <button
-        type="submit"
-        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-[#8b8ca7] transition-colors hover:bg-white/[0.06] hover:text-white"
-      >
-        <LogOut className="h-3.5 w-3.5" />
-        Sign out
-      </button>
-    </form>
+    <button
+      onClick={handleLogout}
+      className="flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
+    >
+      <LogOut className="h-4 w-4" />
+      Sign out
+    </button>
   )
 }
