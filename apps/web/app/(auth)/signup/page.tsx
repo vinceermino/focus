@@ -1,22 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { type FormEvent, useState } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { SubmitEvent, useState } from "react"
+import { createClient } from "@/utils/supabase/client"
 
-// --- Supabase client setup with environment check ---
-// It's better to create the client once, outside the component,
-// but we must ensure the required variables exist.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-  )
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient()
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -24,7 +12,7 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsPending(true)
     setError(null)
@@ -79,7 +67,7 @@ export default function SignupPage() {
     return (
       <div>
         <h2>Check your email!</h2>
-        <p>We've sent a confirmation link to finish setting up your account.</p>
+        <p>We&apos;ve sent a confirmation link to finish setting up your account.</p>
         <p>
           <Link href="/login">Go to sign in</Link>
         </p>
