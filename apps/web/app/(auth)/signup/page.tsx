@@ -2,9 +2,12 @@
 
 import Link from "next/link"
 import { SubmitEvent, useState } from "react"
-import { createClient } from "@/utils/supabase/client"
+import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient()
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -67,7 +70,9 @@ export default function SignupPage() {
     return (
       <div>
         <h2>Check your email!</h2>
-        <p>We&apos;ve sent a confirmation link to finish setting up your account.</p>
+        <p>
+          We&apos;ve sent a confirmation link to finish setting up your account.
+        </p>
         <p>
           <Link href="/login">Go to sign in</Link>
         </p>
